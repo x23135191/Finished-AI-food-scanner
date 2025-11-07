@@ -50,8 +50,6 @@
     .food-gallery img {width:180px;height:120px;object-fit:cover;border-radius:12px;transition:transform 0.4s ease,box-shadow 0.4s ease;}
     .food-gallery img:hover {transform:scale(1.05);box-shadow:0 0 20px rgba(255,0,128,0.6);}
     footer{text-align:center;color:var(--muted);font-size:13px;margin-top:20px;}
-
-    /* === progress bar === */
     #progressBarContainer {width: 100%;height: 8px;background: rgba(255,255,255,0.1);border-radius: 8px;overflow: hidden;margin-top: 10px;display: none;}
     #progressBar {width: 0%;height: 100%;background: linear-gradient(90deg, var(--accent), var(--accent2));animation: progressAnim 2s linear infinite;}
     @keyframes progressAnim {0% {filter: hue-rotate(0deg);}100% {filter: hue-rotate(360deg);}}
@@ -74,7 +72,7 @@
             <button class="btn ghost" id="detectBtn">Detect & Search</button>
           </div>
           <div id="progressBarContainer"><div id="progressBar"></div></div>
-          <div class="meta" style="margin-top:8px;">Detected labels: <span id="labels">—</span></div>
+          <div class="meta" style="margin-top:8px;">Detected food labels: <span id="labels">—</span></div>
           <div class="meta">Location: <span id="loc">not set</span></div>
           <div class="meta" id="aiSuggestion" style="margin-top:8px;"></div>
         </div>
@@ -119,7 +117,7 @@
     detectBtn.addEventListener('click', async () => {
       if (!selectedImageBase64) return alert('Please upload an image first.');
       showProgress(true);
-      await detectLabels(selectedImageBase64);
+      await detectFoodLabels(selectedImageBase64);
       showProgress(false);
     });
 
@@ -128,22 +126,24 @@
       if(state){progressBar.style.width='0%';let w=0;const i=setInterval(()=>{if(!state){clearInterval(i);}w=(w+2)%100;progressBar.style.width=w+'%';},100);}
     }
 
-    async function detectLabels(base64Image){
-      labelsEl.textContent = 'Detecting...';
-      const body = {requests:[{image:{content:base64Image},features:[{type:'LABEL_DETECTION',maxResults:6}]}]};
+    async function detectFoodLabels(base64Image){
+      labelsEl.textContent = 'Detecting food...';
+      const body = {requests:[{image:{content:base64Image},features:[{type:'LABEL_DETECTION',maxResults:10}]}]};
       const resp = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_API_KEY}`,{
         method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const data = await resp.json();
-      const labels = (data.responses?.[0]?.labelAnnotations||[]).map(l=>l.description);
-      labelsEl.textContent = labels.join(', ') || '—';
-      const refinedKeyword = await refineKeyword(labels);
+      const labels = (data.responses?.[0]?.labelAnnotations||[])
+        .map(l=>l.description)
+        .filter(l => /food|dish|cuisine|meal|dessert|fruit|vegetable|snack|drink|beverage|pizza|sushi|burger|pasta|salad|soup/i.test(l));
+      labelsEl.textContent = labels.join(', ') || 'No food detected.';
+      const refinedKeyword = await refineFoodKeyword(labels);
       await getLocationAndSearch(refinedKeyword);
-      await generateGeminiDescription(labels);
-      await generateGeminiImages(refinedKeyword);
+      await generateFoodDescription(labels);
+      await generateFoodImages(refinedKeyword);
     }
 
-    async function refineKeyword(labels){
-      const prompt = `Pick one clear cuisine or dish name from: ${labels.join(', ')}. Example: sushi, pizza, pasta, burger.`;
+    async function refineFoodKeyword(labels){
+      const prompt = `From these labels: ${labels.join(', ')}, identify one specific food, dish, or cuisine name only (ignore utensils or non-edible items).`;
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
@@ -151,9 +151,9 @@
       return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().split(/\s+/)[0] || labels[0] || 'food';
     }
 
-    async function generateGeminiDescription(labels){
-      aiSuggestion.textContent = 'Analyzing with Gemini...';
-      const prompt = `You are a culinary AI. Based on: ${labels.join(', ')}, describe the likely dish and two similar dishes.`;
+    async function generateFoodDescription(labels){
+      aiSuggestion.textContent = 'Analyzing dish details...';
+      const prompt = `You are a culinary AI. Based on these food-related items: ${labels.join(', ')}, describe the likely dish or cuisine, its flavor profile, and two popular similar foods. Ignore utensils, packaging, or background objects.`;
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
@@ -161,11 +161,11 @@
       aiSuggestion.textContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No insight available.';
     }
 
-    async function generateGeminiImages(keyword){
+    async function generateFoodImages(keyword){
       foodGallery.innerHTML = '';
       for(let i=0;i<5;i++){
         const img = document.createElement('img');
-        img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent("high quality food photography of "+keyword)}?${Math.random()}`;
+        img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent("high quality close-up of "+keyword+", gourmet food photography")}?${Math.random()}`;
         foodGallery.appendChild(img);
       }
       startCarousel();
@@ -182,7 +182,7 @@
 
     async function getLocationAndSearch(keyword){
       if(!navigator.geolocation){locEl.textContent='Geolocation not supported';return;}
-      locEl.textContent='Requesting...';
+      locEl.textContent='Requesting location...';
       navigator.geolocation.getCurrentPosition(pos=>{
         userLocation={lat:pos.coords.latitude,lng:pos.coords.longitude};
         locEl.textContent=`${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`;
@@ -232,7 +232,6 @@
     window.onMapsLoaded=()=>initMap();
     loadMapsScript();
 
-    // Neon particles
     const canvas=document.getElementById('particles'),ctx=canvas.getContext('2d');
     let particles=[];
     function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
