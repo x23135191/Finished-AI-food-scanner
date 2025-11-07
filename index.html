@@ -1,277 +1,245 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Food Finder — Gemini + Maps</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#020202;--card:rgba(10,10,20,0.85);--text:#f5f5f5;--muted:#9aa0aa;--accent:#00e0ff;--accent2:#ff0080}
-*{box-sizing:border-box;font-family:'Inter',system-ui;transition:all .24s ease}
-body{margin:0;background:radial-gradient(circle at 20% 20%,#0a0f1c 0%,#000 100%);color:var(--text);overflow-x:hidden}
-canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1}
-.container{max-width:1100px;margin:40px auto;padding:20px;animation:fadeIn .9s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
-header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
-header h1{font-size:24px;margin:0;color:var(--accent)}
-p.lead{color:var(--muted);margin:0}
-.card{background:var(--card);border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:20px;box-shadow:0 0 20px rgba(0,255,255,.12);backdrop-filter:blur(10px)}
-.grid{display:grid;grid-template-columns:380px 1fr;gap:18px;margin-top:18px}
-.preview{height:260px;background:linear-gradient(135deg,#111,#1a1a2e);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;box-shadow:0 0 20px rgba(0,255,255,.12)}
-.preview img{max-width:100%;max-height:100%;object-fit:contain}
-.preview .spinner{position:absolute;left:12px;top:12px;border-radius:8px;padding:6px;background:rgba(0,0,0,.45);font-size:12px;color:var(--muted)}
-.controls{margin-top:10px;display:flex;gap:8px}
-.btn{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;border:0;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600;box-shadow:0 0 12px rgba(255,0,150,.25)}
-.btn:hover{filter:brightness(1.08)}
-.btn.ghost{background:transparent;border:1px solid var(--accent);color:var(--accent)}
-.meta{font-size:13px;color:var(--muted)}
-#map{height:400px;border-radius:12px;margin-top:10px}
-.place{padding:12px;border-radius:8px;background:rgba(255,255,255,.03);margin-bottom:8px;cursor:pointer;transition:background .18s}
-.place:hover{background:rgba(255,255,255,.06)}
-.place-details{display:none;margin-top:8px;font-size:13px;color:var(--muted)}
-.place.active .place-details{display:block}
-.place strong{color:var(--accent2)}
-.rating{color:gold;margin-bottom:6px}
-.food-gallery{display:flex;overflow:hidden;gap:10px;margin-top:30px}
-.food-gallery img{width:180px;height:120px;object-fit:cover;border-radius:12px;transition:transform .28s ease,box-shadow .28s ease}
-.food-gallery img:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(255,0,128,.45)}
-footer{text-align:center;color:var(--muted);font-size:13px;margin-top:20px}
-#progressBarContainer{width:100%;height:8px;background:rgba(255,255,255,.06);border-radius:8px;overflow:hidden;margin-top:10px;display:none}
-#progressBar{width:0%;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .2s ease}
-.cuisine-group{margin-top:15px}
-.cuisine-group h3{color:var(--accent2);margin-bottom:6px;font-size:16px}
-@media(max-width:900px){.grid{grid-template-columns:1fr}.preview{height:200px}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI Food Finder — Gemini + Maps</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020202;
+      --card: rgba(10,10,20,0.85);
+      --text: #f5f5f5;
+      --muted: #9aa0aa;
+      --accent: #00e0ff;
+      --accent2: #ff0080;
+    }
+    *{box-sizing:border-box;font-family:'Inter',system-ui;transition:all 0.3s ease;}
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 20% 20%, #0a0f1c 0%, #000000 100%);
+      color: var(--text);
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    canvas#particles {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+      background: transparent;
+    }
+    .container {max-width: 1100px; margin: 40px auto; padding: 20px; animation: fadeIn 1s ease;}
+    @keyframes fadeIn {from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
+    header {display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+    header h1{font-size:24px;margin:0;color:var(--accent);}
+    p.lead{color:var(--muted);margin:0;}
+    .card {background: var(--card);border: 1px solid rgba(255,255,255,0.05);border-radius: 16px;padding: 20px;box-shadow: 0 0 20px rgba(0,255,255,0.15);backdrop-filter: blur(10px);}
+    .grid {display:grid;grid-template-columns:380px 1fr;gap:18px;margin-top:18px;}
+    .preview {height:260px;background:linear-gradient(135deg,#111,#1a1a2e);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;box-shadow:0 0 20px rgba(0,255,255,0.15);}
+    .preview img {max-width:100%;max-height:100%;object-fit:contain;}
+    .btn {background: linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;border:0;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600;box-shadow:0 0 12px rgba(255,0,150,0.4);}
+    .btn:hover {filter:brightness(1.2);}
+    .btn.ghost {background: transparent;border: 1px solid var(--accent);color: var(--accent);}
+    .btn.ghost:hover {background:rgba(0,255,255,0.1);}
+    .meta{font-size:13px;color:var(--muted);}
+    #map {height:400px;border-radius:12px;margin-top:10px;}
+    .place{padding:10px;border-radius:8px;background:rgba(255,255,255,0.05);margin-bottom:8px;}
+    .place:hover{background:rgba(255,255,255,0.1);}
+    .food-gallery {display:flex;overflow:hidden;gap:10px;margin-top:30px;}
+    .food-gallery img {width:180px;height:120px;object-fit:cover;border-radius:12px;transition:transform 0.4s ease,box-shadow 0.4s ease;}
+    .food-gallery img:hover {transform:scale(1.05);box-shadow:0 0 20px rgba(255,0,128,0.6);}
+    footer{text-align:center;color:var(--muted);font-size:13px;margin-top:20px;}
+    #progressBarContainer {width: 100%;height: 8px;background: rgba(255,255,255,0.1);border-radius: 8px;overflow: hidden;margin-top: 10px;display: none;}
+    #progressBar {width: 0%;height: 100%;background: linear-gradient(90deg, var(--accent), var(--accent2));animation: progressAnim 2s linear infinite;}
+    @keyframes progressAnim {0% {filter: hue-rotate(0deg);}100% {filter: hue-rotate(360deg);}}
+  </style>
 </head>
 <body>
-<canvas id="particles"></canvas>
-<div class="container">
-  <header>
-    <h1>AI Food Finder</h1>
-    <p class="lead">Upload food photos — get AI insights & nearby restaurants</p>
-  </header>
-  <div class="card">
-    <div class="grid">
-      <div>
-        <div class="preview" id="preview"><span id="previewText">No image selected</span></div>
-        <div class="controls">
-          <label class="btn" for="imageInput">Upload Image</label>
-          <input type="file" id="imageInput" accept="image/*" style="display:none">
-          <button class="btn ghost" id="detectBtn">Detect & Search</button>
+  <canvas id="particles"></canvas>
+  <div class="container">
+    <header>
+      <h1>AI Food Finder</h1>
+      <p class="lead">Upload food photos — get AI insights & nearby restaurants</p>
+    </header>
+    <div class="card">
+      <div class="grid">
+        <div>
+          <div class="preview" id="preview"><span id="previewText">No image selected</span></div>
+          <div style="margin-top:10px;display:flex;gap:8px;">
+            <label class="btn" for="imageInput">Upload Image</label>
+            <input type="file" id="imageInput" accept="image/*" style="display:none;">
+            <button class="btn ghost" id="detectBtn">Detect & Search</button>
+          </div>
+          <div id="progressBarContainer"><div id="progressBar"></div></div>
+          <div class="meta" style="margin-top:8px;">Detected items: <span id="labels">—</span></div>
+          <div class="meta">Location: <span id="loc">not set</span></div>
+          <div class="meta" id="aiSuggestion" style="margin-top:8px;"></div>
         </div>
-        <div id="progressBarContainer"><div id="progressBar"></div></div>
-        <div class="meta" style="margin-top:8px">Detected items: <span id="labels">—</span></div>
-        <div class="meta">Location: <span id="loc">not set</span></div>
-        <div class="meta" id="aiSuggestion" style="margin-top:8px"></div>
+        <div>
+          <div id="map" class="card"></div>
+          <div style="margin-top:12px;font-size:14px;color:var(--muted)">Nearby restaurants:</div>
+          <div id="placesList"></div>
+        </div>
       </div>
-      <div>
-        <div id="map" class="card"></div>
-        <div style="margin-top:12px;font-size:14px;color:var(--muted)">Nearby restaurants:</div>
-        <div id="placesList"></div>
-      </div>
+      <div class="food-gallery" id="foodGallery"></div>
     </div>
-    <div class="food-gallery" id="foodGallery"></div>
+    <footer>Built with Google Maps, Gemini & Vision APIs — © 2025</footer>
   </div>
-  <footer>Built with Google Maps, Gemini & Vision APIs — © 2025</footer>
-</div>
-<script>
-const GOOGLE_API_KEY='AIzaSyCABqWaR4pjHwPBDknEdnzlSIgk0ubhuLw';
-const GEMINI_API_KEY='AIzaSyCABqWaR4pjHwPBDknEdnzlSIgk0ubhuLw';
-let selectedImageBase64=null,map,placesService,userLocation,markers=[];
-const imageInput=document.getElementById('imageInput'),preview=document.getElementById('preview'),detectBtn=document.getElementById('detectBtn'),labelsEl=document.getElementById('labels'),locEl=document.getElementById('loc'),placesList=document.getElementById('placesList'),aiSuggestion=document.getElementById('aiSuggestion'),foodGallery=document.getElementById('foodGallery'),progressBarContainer=document.getElementById('progressBarContainer'),progressBar=document.getElementById('progressBar');
 
-const timeoutMs=12000;
-const foodKeywordsSet=new Set(['pizza','sushi','pasta','burger','taco','noodle','rice','salad','dessert','curry','steak','bread','fish','meat','chicken','seafood','fruit','vegetable','cake','sandwich','wrap','soup','ramen','dumpling','biryani','pancake','coffee','tea','drink','smoothie','cookie','sauce','paella','ceviche','kebab','gyro','shawarma']);
+  <script>
+    const GOOGLE_API_KEY = 'AIzaSyCABqWaR4pjHwPBDknEdnzlSIgk0ubhuLw';
+    const GEMINI_API_KEY = 'AIzaSyCABqWaR4pjHwPBDknEdnzlSIgk0ubhuLw';
 
-function fetchWithTimeout(url,opts,ms=timeoutMs){return Promise.race([fetch(url,opts),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms))]);}
+    let selectedImageBase64 = null, map, placesService, userLocation;
+    const imageInput = document.getElementById('imageInput');
+    const preview = document.getElementById('preview');
+    const detectBtn = document.getElementById('detectBtn');
+    const labelsEl = document.getElementById('labels');
+    const locEl = document.getElementById('loc');
+    const placesList = document.getElementById('placesList');
+    const aiSuggestion = document.getElementById('aiSuggestion');
+    const foodGallery = document.getElementById('foodGallery');
+    const progressBarContainer = document.getElementById('progressBarContainer');
+    const progressBar = document.getElementById('progressBar');
 
-imageInput.addEventListener('change',e=>{
-  const file=e.target.files[0];
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=()=>{preview.innerHTML=`<img src="${reader.result}">`;selectedImageBase64=reader.result.split(',')[1];};
-  reader.readAsDataURL(file);
-});
-
-detectBtn.addEventListener('click',async()=>{
-  if(!selectedImageBase64){alert('Please upload an image first.');return}
-  showProgress(true);
-  clearMarkers();
-  await detectFoodItems(selectedImageBase64);
-  showProgress(false);
-});
-
-function showProgress(state){
-  progressBarContainer.style.display=state?'block':'none';
-  if(state){progressBar.style.width='6%';let p=6;const t=setInterval(()=>{p=Math.min(96,p+Math.random()*8);progressBar.style.width=p+'%';if(!progressBarContainer.style.display||progressBarContainer.style.display==='none'){clearInterval(t);progressBar.style.width='0%'}},250)}else{progressBar.style.width='100%';setTimeout(()=>progressBar.style.width='0%',300)}
-}
-
-async function detectFoodItems(base64Image){
-  labelsEl.textContent='Detecting...';
-  aiSuggestion.textContent='';
-  const body={requests:[{image:{content:base64Image},features:[{type:'LABEL_DETECTION',maxResults:12}]}]};
-  try{
-    const resp=await fetchWithTimeout(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_API_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const data=await resp.json();
-    let labels=(data.responses?.[0]?.labelAnnotations||[]).map(l=>String(l.description||'').toLowerCase());
-    labels=labels.filter(l=>{
-      if(!l) return false;
-      const cleaned=l.replace(/[^a-z\s]/g,'').trim();
-      if(!cleaned) return false;
-      if(['food','dish','meal','cuisine','ingredient','plate','served','served on','container','table','utensil','cutlery','bowl','glass','drink','beverage','person','people'].includes(cleaned)) return false;
-      for(const k of foodKeywordsSet) if(cleaned.includes(k)) return true;
-      return false;
+    imageInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        preview.innerHTML = `<img src="${reader.result}" />`;
+        selectedImageBase64 = reader.result.split(',')[1];
+      };
+      reader.readAsDataURL(file);
     });
-    labels=[...new Set(labels)].slice(0,6);
-    if(!labels.length){labelsEl.textContent='No specific items detected.';aiSuggestion.textContent='Try a clearer close-up of the food.';return}
-    labelsEl.textContent=labels.join(', ');
-    const refinedKeyword=await getRefinedKeyword(labels);
-    const cuisineOrDish=refinedKeyword||labels[0];
-    aiSuggestion.textContent=`Searching for: ${cuisineOrDish}`;
-    await getLocationAndSearch(cuisineOrDish);
-    await generateDishDescription(labels);
-    await generateFoodImages(cuisineOrDish);
-  }catch(e){
-    labelsEl.textContent='Detection error';
-    aiSuggestion.textContent='';
-  }
-}
 
-async function getRefinedKeyword(labels){
-  const prompt=`You are a culinary assistant. From the list: ${labels.join(', ')}, return ONE concise dish or cuisine name (example: spaghetti carbonara, sushi, Italian). Reply with the single name only.`;
-  try{
-    const payload={contents:[{parts:[{text:prompt}]}]};
-    const resp=await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const data=await resp.json();
-    let kw=data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase()||'';
-    kw=kw.replace(/\b(food|dish|meal|plate|type|style|like)\b/g,'').replace(/[^a-z\s]/g,'').trim();
-    if(!kw) return labels[0];
-    const tokens=kw.split(/\s+/).slice(0,4).join(' ');
-    return tokens;
-  }catch(e){
-    return labels[0];
-  }
-}
+    detectBtn.addEventListener('click', async () => {
+      if (!selectedImageBase64) return alert('Please upload an image first.');
+      showProgress(true);
+      await detectFoodItems(selectedImageBase64);
+      showProgress(false);
+    });
 
-async function generateDishDescription(labels){
-  aiSuggestion.textContent='Analyzing dish...';
-  const prompt=`Describe the most likely dish or cuisine based on: ${labels.join(', ')}. Include flavor profile and origin in two short sentences.`;
-  try{
-    const payload={contents:[{parts:[{text:prompt}]}]};
-    const resp=await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const data=await resp.json();
-    aiSuggestion.textContent=data?.candidates?.[0]?.content?.parts?.[0]?.text||'No insight available.';
-  }catch(e){
-    aiSuggestion.textContent='No insight available.';
-  }
-}
+    function showProgress(state){
+      progressBarContainer.style.display = state ? 'block' : 'none';
+      if(state){progressBar.style.width='0%';let w=0;const i=setInterval(()=>{if(!state){clearInterval(i);}w=(w+2)%100;progressBar.style.width=w+'%';},100);}
+    }
 
-async function generateFoodImages(keyword){
-  foodGallery.innerHTML='';
-  const cuisineSets={italian:['pasta','pizza','risotto','tiramisu'],japanese:['sushi','ramen','tempura','donburi'],indian:['biryani','butter chicken','naan','samosa'],mexican:['tacos','burrito','quesadilla','nachos'],chinese:['dumplings','fried rice','noodles','spring rolls']};
-  const lower=String(keyword||'').toLowerCase();
-  const related=cuisineSets[Object.keys(cuisineSets).find(k=>lower.includes(k))]||[keyword];
-  for(const item of related.slice(0,6)){
-    const img=document.createElement('img');
-    img.loading='lazy';
-    const prompt=`professional food photo of ${item}, gourmet plating, shallow depth of field, cinematic lighting`;
-    img.src=`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?v=${Math.random()}`;
-    foodGallery.appendChild(img);
-  }
-  startCarousel();
-}
+    async function detectFoodItems(base64Image){
+      labelsEl.textContent = 'Detecting...';
+      const body = {requests:[{image:{content:base64Image},features:[{type:'LABEL_DETECTION',maxResults:10}]}]};
+      const resp = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_API_KEY}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const data = await resp.json();
+      let labels = (data.responses?.[0]?.labelAnnotations||[]).map(l=>l.description.toLowerCase());
 
-let carouselRaf=0;
-function startCarousel(){
-  cancelAnimationFrame(carouselRaf);
-  let last=performance.now();
-  const step=ts=>{
-    const dt=ts-last; last=ts;
-    if(foodGallery.scrollWidth>foodGallery.clientWidth) foodGallery.scrollLeft=(foodGallery.scrollLeft + dt*0.02) % (foodGallery.scrollWidth);
-    carouselRaf=requestAnimationFrame(step);
-  };
-  carouselRaf=requestAnimationFrame(step);
-}
+      const exclude = ['food','dish','meal','cuisine','ingredient','plate','snack','dessert','cooked','served','breakfast','lunch','dinner'];
+      labels = labels.filter(l => !exclude.includes(l.trim()));
 
-async function getLocationAndSearch(keyword){
-  if(!navigator.geolocation){locEl.textContent='Geolocation not supported';return}
-  locEl.textContent='Requesting location...';
-  navigator.geolocation.getCurrentPosition(pos=>{
-    userLocation={lat:pos.coords.latitude,lng:pos.coords.longitude};
-    locEl.textContent=`${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`;
-    if(!map) initMap();
-    map.setCenter(userLocation);
-    placesList.innerHTML='';
-    const cuisines=[keyword].concat(['italian','japanese','indian','mexican','chinese']).filter(Boolean);
-    for(let i=0;i<cuisines.length;i++) setTimeout(()=>searchCuisine(cuisines[i]),i*600);
-  },()=>{locEl.textContent='Location denied'});
-}
+      labelsEl.textContent = labels.join(', ') || 'No specific items detected.';
+      const refinedKeyword = await refineDishKeyword(labels);
+      await getLocationAndSearch(refinedKeyword);
+      await generateDishDescription(labels);
+      await generateFoodImages(refinedKeyword);
+    }
 
-function searchCuisine(cuisine){
-  if(!placesService||!userLocation) return;
-  const req={location:userLocation,radius:5000,type:'restaurant',keyword:cuisine};
-  placesService.nearbySearch(req,(results,status)=>handleCuisineResults(cuisine,results,status));
-}
+    async function refineDishKeyword(labels){
+      const prompt = `From these detected objects: ${labels.join(', ')}, identify a specific dish, cuisine, or food type (ignore generic terms like "food", "dish", "meal", or utensils). Return one short keyword only.`;
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+      const data = await resp.json();
+      return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().split(/\s+/)[0] || labels[0] || 'restaurant';
+    }
 
-function handleCuisineResults(cuisine,results,status){
-  if(status!==google.maps.places.PlacesServiceStatus.OK||!results?.length) return;
-  const group=document.createElement('div'); group.className='cuisine-group';
-  group.innerHTML=`<h3>${cuisine.charAt(0).toUpperCase()+cuisine.slice(1)} Places</h3>`;
-  results.slice(0,6).forEach(place=>{
-    const div=document.createElement('div'); div.className='place';
-    const ratingStars = place.rating? '★'.repeat(Math.min(5,Math.round(place.rating))) : '';
-    const statusText = place.opening_hours? (place.opening_hours.open_now? 'Open now':'Closed') : '';
-    const dest = place.geometry?.location ? `${place.geometry.location.lat()},${place.geometry.location.lng()}` : encodeURIComponent(place.name || '');
-    div.innerHTML=`
-      <strong>${place.name}</strong><br>
-      <span style="font-size:12px;color:var(--muted)">${place.vicinity||''}</span>
-      <div class="place-details">
-        <div class="rating">${ratingStars} (${place.rating||'N/A'})</div>
-        <div>${statusText}</div>
-        <a class="btn ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${dest}">Get Directions</a>
-      </div>`;
-    div.addEventListener('click',()=>{div.classList.toggle('active'); map.panTo(place.geometry.location);});
-    group.appendChild(div);
-    const m=new google.maps.Marker({map,position:place.geometry.location,animation:google.maps.Animation.DROP});
-    markers.push(m);
-  });
-  placesList.appendChild(group);
-}
+    async function generateDishDescription(labels){
+      aiSuggestion.textContent = 'Analyzing dish...';
+      const prompt = `You are a culinary AI. Based on these detected items: ${labels.join(', ')}, determine what dish or cuisine this likely represents. Describe its ingredients and origin briefly, ignoring anything not edible.`;
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+      const data = await resp.json();
+      aiSuggestion.textContent = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No insight available.';
+    }
 
-function clearMarkers(){markers.forEach(m=>m.setMap(null));markers=[]}
+    async function generateFoodImages(keyword){
+      foodGallery.innerHTML = '';
+      for(let i=0;i<5;i++){
+        const img = document.createElement('img');
+        img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent("close-up photo of "+keyword+", gourmet food photography, professional lighting")}?${Math.random()}`;
+        foodGallery.appendChild(img);
+      }
+      startCarousel();
+    }
 
-function initMap(){
-  map=new google.maps.Map(document.getElementById('map'),{center:{lat:51.5074,lng:-0.1278},zoom:13,styles:[{elementType:'geometry',stylers:[{color:'#0a0a0a'}]},{featureType:'water',stylers:[{color:'#0f2027'}]},{elementType:'labels.text.stroke',stylers:[{color:'#000'}]},{elementType:'labels.text.fill',stylers:[{color:'#00e0ff'}]}]});
-  placesService=new google.maps.places.PlacesService(map);
-}
+    function startCarousel(){
+      let scrollPos = 0;
+      setInterval(()=>{
+        scrollPos += 1;
+        if(scrollPos > foodGallery.scrollWidth - foodGallery.clientWidth) scrollPos = 0;
+        foodGallery.scrollTo({left: scrollPos, behavior:'smooth'});
+      },50);
+    }
 
-function loadMapsScript(){
-  if(window.google && window.google.maps) return initMap();
-  const s=document.createElement('script');
-  s.src=`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=places&callback=onMapsLoaded`;
-  s.async=true; s.defer=true; document.head.appendChild(s);
-}
-window.onMapsLoaded=()=>initMap();
-loadMapsScript();
+    async function getLocationAndSearch(keyword){
+      if(!navigator.geolocation){locEl.textContent='Geolocation not supported';return;}
+      locEl.textContent='Requesting location...';
+      navigator.geolocation.getCurrentPosition(pos=>{
+        userLocation={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        locEl.textContent=`${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`;
+        if(!map) initMap();
+        map.setCenter(userLocation);
+        const waitForService = setInterval(()=>{
+          if(placesService){
+            clearInterval(waitForService);
+            const req={location:userLocation,radius:5000,type:'restaurant',keyword};
+            placesService.nearbySearch(req,handlePlacesResults);
+          }
+        },500);
+      },()=>{locEl.textContent='Location denied';});
+    }
 
-const canvas=document.getElementById('particles'),ctx=canvas.getContext('2d');let particles=[];
-function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
-window.addEventListener('resize',resize);resize();
-const particleCount=Math.max(40,Math.min(90,Math.floor((window.innerWidth*window.innerHeight)/80000)));
-for(let i=0;i<particleCount;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2+1,dx:(Math.random()-0.5)*0.6,dy:(Math.random()-0.5)*0.6,color:`hsl(${Math.random()*360},80%,60%)`})}
-let lastAnim=0;
-function animate(ts){
-  const dt=ts-lastAnim; lastAnim=ts;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(const p of particles){
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle=p.color; ctx.shadowColor=p.color; ctx.shadowBlur=8; ctx.fill();
-    p.x+=p.dx*(dt*0.06); p.y+=p.dy*(dt*0.06);
-    if(p.x<0||p.x>canvas.width) p.dx*=-1;
-    if(p.y<0||p.y>canvas.height) p.dy*=-1;
-  }
-  requestAnimationFrame(animate);
-}
-requestAnimationFrame(animate);
-</script>
+    function initMap(){
+      map = new google.maps.Map(document.getElementById('map'),{
+        center:{lat:51.5074,lng:-0.1278},zoom:13,
+        styles:[{elementType:'geometry',stylers:[{color:'#0a0a0a'}]},
+          {featureType:'water',stylers:[{color:'#0f2027'}]},
+          {elementType:'labels.text.stroke',stylers:[{color:'#000'}]},
+          {elementType:'labels.text.fill',stylers:[{color:'#00e0ff'}]}]
+      });
+      placesService = new google.maps.places.PlacesService(map);
+    }
+
+    function handlePlacesResults(results,status){
+      placesList.innerHTML='';
+      if(status!==google.maps.places.PlacesServiceStatus.OK||!results.length){
+        placesList.innerHTML='<div style="color:var(--muted)">No restaurants found for this dish.</div>';return;
+      }
+      results.slice(0,8).forEach(place=>{
+        const div=document.createElement('div');
+        div.className='place';
+        div.innerHTML=`<strong>${place.name}</strong><br><span style="font-size:12px;color:var(--muted)">${place.vicinity||''}</span>`;
+        div.addEventListener('click',()=>map.panTo(place.geometry.location));
+        placesList.appendChild(div);
+        new google.maps.Marker({map,position:place.geometry.location,animation:google.maps.Animation.DROP});
+      });
+    }
+
+    function loadMapsScript(){
+      const s=document.createElement('script');
+      s.src=`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=places&callback=onMapsLoaded`;
+      s.async=true;s.defer=true;document.head.appendChild(s);
+    }
+    window.onMapsLoaded=()=>initMap();
+    loadMapsScript();
+
+    const canvas=document.getElementById('particles'),ctx=canvas.getContext('2d');
+    let particles=[];
+    function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
+    window.addEventListener('resize',resize);resize();
+    for(let i=0;i<60;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*3+1,dx:(Math.random()-0.5)*0.5,dy:(Math.random()-0.5)*0.5,color:`hsl(${Math.random()*360},100%,60%)`});}
+    function animate(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=10;ctx.fill();p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>canvas.width)p.dx*=-1;if(p.y<0||p.y>canvas.height)p.dy*=-1;});requestAnimationFrame(animate);}animate();
+  </script>
 </body>
 </html>
