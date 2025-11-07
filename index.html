@@ -88,8 +88,8 @@
   </div>
 
   <script>
-    const GOOGLE_API_KEY = 'AIzaSyCABqWaR4pjHwPBDknEdnzlSIgk0ubhuLw';
-    const GEMINI_API_KEY = 'AIzaSyCABqWaR4pjHwPBDknEdnzlSIgk0ubhuLw';
+    const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY';
+    const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';
 
     let selectedImageBase64 = null, map, placesService, userLocation;
     const imageInput = document.getElementById('imageInput');
@@ -133,10 +133,8 @@
         method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const data = await resp.json();
       let labels = (data.responses?.[0]?.labelAnnotations||[]).map(l=>l.description.toLowerCase());
-
       const exclude = ['food','dish','meal','cuisine','ingredient','plate','snack','dessert','cooked','served','breakfast','lunch','dinner'];
       labels = labels.filter(l => !exclude.includes(l.trim()));
-
       labelsEl.textContent = labels.join(', ') || 'No specific items detected.';
       const refinedKeyword = await refineDishKeyword(labels);
       await getLocationAndSearch(refinedKeyword);
@@ -145,7 +143,7 @@
     }
 
     async function refineDishKeyword(labels){
-      const prompt = `From these detected objects: ${labels.join(', ')}, identify a specific dish, cuisine, or food type (ignore generic terms like "food", "dish", "meal", or utensils). Return one short keyword only.`;
+      const prompt = `From these detected items: ${labels.join(', ')}, identify the most likely dish or food name only (ignore utensils, people, and background). Return one concise keyword.`;
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
@@ -155,7 +153,7 @@
 
     async function generateDishDescription(labels){
       aiSuggestion.textContent = 'Analyzing dish...';
-      const prompt = `You are a culinary AI. Based on these detected items: ${labels.join(', ')}, determine what dish or cuisine this likely represents. Describe its ingredients and origin briefly, ignoring anything not edible.`;
+      const prompt = `You are a food expert AI. Based on these detected items: ${labels.join(', ')}, describe what this dish or cuisine likely is. Mention key ingredients and flavor profile briefly. Ignore anything non-edible.`;
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
@@ -167,7 +165,7 @@
       foodGallery.innerHTML = '';
       for(let i=0;i<5;i++){
         const img = document.createElement('img');
-        img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent("close-up photo of "+keyword+", gourmet food photography, professional lighting")}?${Math.random()}`;
+        img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent("gourmet "+keyword+" dish, professional food photography, restaurant style, different angles")}?${Math.random()}`;
         foodGallery.appendChild(img);
       }
       startCarousel();
@@ -214,9 +212,9 @@
     function handlePlacesResults(results,status){
       placesList.innerHTML='';
       if(status!==google.maps.places.PlacesServiceStatus.OK||!results.length){
-        placesList.innerHTML='<div style="color:var(--muted)">No restaurants found for this dish.</div>';return;
+        placesList.innerHTML='<div style="color:var(--muted)">No restaurants found nearby.</div>';return;
       }
-      results.slice(0,8).forEach(place=>{
+      results.slice(0,10).forEach(place=>{
         const div=document.createElement('div');
         div.className='place';
         div.innerHTML=`<strong>${place.name}</strong><br><span style="font-size:12px;color:var(--muted)">${place.vicinity||''}</span>`;
@@ -243,3 +241,4 @@
   </script>
 </body>
 </html>
+
