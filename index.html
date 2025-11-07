@@ -72,7 +72,7 @@
             <button class="btn ghost" id="detectBtn">Detect & Search</button>
           </div>
           <div id="progressBarContainer"><div id="progressBar"></div></div>
-          <div class="meta" style="margin-top:8px;">Detected food labels: <span id="labels">—</span></div>
+          <div class="meta" style="margin-top:8px;">Detected items: <span id="labels">—</span></div>
           <div class="meta">Location: <span id="loc">not set</span></div>
           <div class="meta" id="aiSuggestion" style="margin-top:8px;"></div>
         </div>
@@ -117,7 +117,7 @@
     detectBtn.addEventListener('click', async () => {
       if (!selectedImageBase64) return alert('Please upload an image first.');
       showProgress(true);
-      await detectFoodLabels(selectedImageBase64);
+      await detectFoodItems(selectedImageBase64);
       showProgress(false);
     });
 
@@ -126,34 +126,36 @@
       if(state){progressBar.style.width='0%';let w=0;const i=setInterval(()=>{if(!state){clearInterval(i);}w=(w+2)%100;progressBar.style.width=w+'%';},100);}
     }
 
-    async function detectFoodLabels(base64Image){
-      labelsEl.textContent = 'Detecting food...';
+    async function detectFoodItems(base64Image){
+      labelsEl.textContent = 'Detecting...';
       const body = {requests:[{image:{content:base64Image},features:[{type:'LABEL_DETECTION',maxResults:10}]}]};
       const resp = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_API_KEY}`,{
         method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const data = await resp.json();
-      const labels = (data.responses?.[0]?.labelAnnotations||[])
-        .map(l=>l.description)
-        .filter(l => /food|dish|cuisine|meal|dessert|fruit|vegetable|snack|drink|beverage|pizza|sushi|burger|pasta|salad|soup/i.test(l));
-      labelsEl.textContent = labels.join(', ') || 'No food detected.';
-      const refinedKeyword = await refineFoodKeyword(labels);
+      let labels = (data.responses?.[0]?.labelAnnotations||[]).map(l=>l.description.toLowerCase());
+
+      const exclude = ['food','dish','meal','cuisine','ingredient','plate','snack','dessert','cooked','served','breakfast','lunch','dinner'];
+      labels = labels.filter(l => !exclude.includes(l.trim()));
+
+      labelsEl.textContent = labels.join(', ') || 'No specific items detected.';
+      const refinedKeyword = await refineDishKeyword(labels);
       await getLocationAndSearch(refinedKeyword);
-      await generateFoodDescription(labels);
+      await generateDishDescription(labels);
       await generateFoodImages(refinedKeyword);
     }
 
-    async function refineFoodKeyword(labels){
-      const prompt = `From these labels: ${labels.join(', ')}, identify one specific food, dish, or cuisine name only (ignore utensils or non-edible items).`;
+    async function refineDishKeyword(labels){
+      const prompt = `From these detected objects: ${labels.join(', ')}, identify a specific dish, cuisine, or food type (ignore generic terms like "food", "dish", "meal", or utensils). Return one short keyword only.`;
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
       const data = await resp.json();
-      return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().split(/\s+/)[0] || labels[0] || 'food';
+      return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().split(/\s+/)[0] || labels[0] || 'restaurant';
     }
 
-    async function generateFoodDescription(labels){
-      aiSuggestion.textContent = 'Analyzing dish details...';
-      const prompt = `You are a culinary AI. Based on these food-related items: ${labels.join(', ')}, describe the likely dish or cuisine, its flavor profile, and two popular similar foods. Ignore utensils, packaging, or background objects.`;
+    async function generateDishDescription(labels){
+      aiSuggestion.textContent = 'Analyzing dish...';
+      const prompt = `You are a culinary AI. Based on these detected items: ${labels.join(', ')}, determine what dish or cuisine this likely represents. Describe its ingredients and origin briefly, ignoring anything not edible.`;
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
@@ -165,7 +167,7 @@
       foodGallery.innerHTML = '';
       for(let i=0;i<5;i++){
         const img = document.createElement('img');
-        img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent("high quality close-up of "+keyword+", gourmet food photography")}?${Math.random()}`;
+        img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent("close-up photo of "+keyword+", gourmet food photography, professional lighting")}?${Math.random()}`;
         foodGallery.appendChild(img);
       }
       startCarousel();
