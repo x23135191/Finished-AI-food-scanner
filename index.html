@@ -89,7 +89,7 @@
 
   <script>
     const GOOGLE_API_KEY = 'AIzaSyCABqWaR4pjHwPBDknEdnzlSIgk0ubhuLw';
-    const GEMINI_API_KEY = 'AIzaSyCABqWaR4pjHwPBDknEdnzlSIgk0ubhuLw';
+    const GEMINI_API_KEY = 'YAIzaSyCABqWaR4pjHwPBDknEdnzlSIgk0ubhuLw';
 
     let selectedImageBase64 = null, map, placesService, userLocation;
     const imageInput = document.getElementById('imageInput');
@@ -145,17 +145,20 @@
     }
 
     async function refineDishKeyword(labels){
-      const prompt = `From these detected objects: ${labels.join(', ')}, identify a specific dish, cuisine, or food type (ignore generic terms like "food", "dish", "meal", or utensils). Return one short keyword only.`;
+      const prompt = `You are a culinary expert. From these items: ${labels.join(', ')}, name the single most likely dish or cuisine. Respond with only the short name of the dish — no extra words, no labels like "food" or "dish".`;
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
       const data = await resp.json();
-      return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().split(/\s+/)[0] || labels[0] || 'restaurant';
+      let keyword = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase() || labels[0] || 'restaurant';
+      keyword = keyword.replace(/\b(food|dish|meal|style|cuisine|plate|type|like)\b/g, '').replace(/[^a-z\s]/g,'').trim();
+      const words = keyword.split(' ').slice(0,3).join(' ');
+      return words || 'restaurant';
     }
 
     async function generateDishDescription(labels){
       aiSuggestion.textContent = 'Analyzing dish...';
-      const prompt = `You are a culinary AI. Based on these detected items: ${labels.join(', ')}, determine what dish or cuisine this likely represents. Describe its ingredients and origin briefly, ignoring anything not edible.`;
+      const prompt = `You are a culinary AI. Based on these items: ${labels.join(', ')}, describe what dish or cuisine this likely represents, focusing on ingredients and taste. Ignore utensils and backgrounds.`;
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
@@ -243,3 +246,4 @@
   </script>
 </body>
 </html>
+
